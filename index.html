@@ -2,16 +2,71 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>Electron boilerplate</title>
-		<link rel="stylesheet" href="index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+		<title>Pulse</title>
+		<link rel="stylesheet" href="bootstrap.min.css">
 	</head>
 	<body>
-		<div class="container">
-			<header>
-				<h1>Electron boilerplate</h1>
-			</header>
-			<section class="main"></section>
-			<footer></footer>
+		<div class="container" style="padding-top: 2em; padding-bottom: 2em; display: none;" id="chat-screen">
+			chat screen
 		</div>
+
+		<div style="display: none;" id="loading-screen">
+			<div style="display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;">
+				<center>
+					<h1 id="loading-screen-text">Loading...</h1>
+				</center>
+			</div>
+		</div>
+
+		<div style="display: none;" id="welcome-screen">
+			<div style="display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;">
+				<center>
+					<h1>Pulse</h1>
+					<div class="form-group">
+				    <label for="serverSelect" class="inline-block">Server</label>
+				    <select class="form-control" id="serverSelect">
+				      <option selected="true" value="194.135.84.73:6666">Official Echo</option>
+				    </select>
+				  </div>
+					<div class="form-group">
+				    <label for="username">Username</label>
+				    <input type="text" class="form-control" id="username">
+				  </div>
+					<button type="button" class="btn btn-primary" id="connectButton">Connect</button>
+				</center>
+			</div>
+		</div>
+
+		<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+		<script src="jquery-3.2.1.min.js"></script>
+		<script src="tether.min.js"></script>
+		<script src="bootstrap.min.js"></script>
+		<script>if (window.module) module = window.module;</script>
+		<script>
+			var net = require("net");
+			var utf8 = require("utf8");
+
+			var client = new net.Socket();
+
+			$(document).ready(function() {
+				$("#welcome-screen").fadeIn(1000);
+			});
+
+			$("#connectButton").click(function() {
+				$("#welcome-screen").hide();
+				$("#loading-screen-text").text("Connecting...");
+				$("#loading-screen").show();
+				client.connect(parseInt($("#serverSelect").val().split(":")[1]), $("#serverSelect").val().split(":")[0], function() {
+					$("#loading-screen-text").text("Logging in...");
+					setTimeout(function() { // wait for server to handle connection
+						client.write(utf8.encode($("#username").val()));
+						$("#loading-screen").hide();
+						$("#chat-screen").show();
+					}, 1000);
+				});
+			});
+		</script>
 	</body>
 </html>
