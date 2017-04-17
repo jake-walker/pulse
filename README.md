@@ -2,7 +2,7 @@
 
 [Looking for Version 1 (built on Electron)?](https://github.com/jake-walker/pulse/tree/v1)
 
-A custom unofficial client for Echo.
+An unofficial client for [Echo](https://github.com/will-scargill/ECHO).
 
 ## What is Echo?
-Echo is a chat application built by [will-scargill](https://github.com/will-scargill) with Python. Echo uses simple TCP communication.
+[Echo](https://github.com/will-scargill/ECHO) is a chat application built by [will-scargill](https://github.com/will-scargill) with Python. Echo uses simple TCP communication.
