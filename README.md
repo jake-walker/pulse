@@ -1,4 +1,7 @@
-# Pulse 1
+# Pulse 2
+
+[Looking for Version 1 (built on Electron)?](https://github.com/jake-walker/pulse/tree/v1)
+
 A custom unofficial client for Echo.
 
 ## What is Echo?
