@@ -28,6 +28,10 @@ function createMainWindow() {
 	return win;
 }
 
+app.on('browser-window-created',function(e,window) {
+  window.setMenu(null);
+});
+
 app.on('window-all-closed', () => {
 	if (process.platform !== 'darwin') {
 		app.quit();
