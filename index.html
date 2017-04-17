@@ -8,8 +8,32 @@
 		<link rel="stylesheet" href="bootstrap.min.css">
 	</head>
 	<body>
-		<div class="container" style="padding-top: 2em; padding-bottom: 2em; display: none;" id="chat-screen">
-			chat screen
+		<div style="display: none;" id="chat-screen">
+			<div class="container" style="padding-top: 2em; padding-bottom: 2em; font-family: monospace; display: flex; flex-direction: column; max-height:100vh; min-height:100vh;">
+				<div id="chat-header">
+					<div class="row">
+						<div class="col-sm-3">
+							<b id="chatServerName">Server Name</b>
+						</div>
+						<div class="col-sm-9"></div>
+					</div>
+					<hr>
+				</div>
+				<div id="messages" style="overflow-y: scroll; flex: 1; overflow-x: hidden;">
+				</div>
+				<br>
+				<div class="chat-input">
+					<div class="row">
+						<div class="col-md-10">
+							<label class="sr-only" for="messageInput">Message</label>
+						  <input type="text" class="form-control form-control-sm mb-2 mr-sm-2 mb-sm-0" id="messageInput" style="width: 100%;">
+						</div>
+						<div class="col-md-2">
+							<button type="button" class="btn btn-primary btn-sm" style="width: 100%;" id="send-button">Send</button>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div style="display: none;" id="loading-screen">
@@ -50,6 +74,29 @@
 
 			var client = new net.Socket();
 
+			client.on("data", function(data) {
+			  data = data.toString("utf-8");
+		    let username = data.substring(data.indexOf("[")+1,data.indexOf("]"));
+		    if (!username) { username = "?" }
+		    let message = data.replace("[" + username + "]", "").split();
+				let now = new Date();
+		    $("#messages").append(`
+					<div class="row" class="message">
+						<div class="col-sm-1">
+							<span style="color: #BDBDBD;">` + now.getHours() + `:` + now.getMinutes() + `</span>
+						</div>
+						<div class="col-sm-2" style="border-right-color: #BDBDBD; border-right-style: solid; border-right-width: 1px;">
+							<span class="float-right text-primary">` + username + `</span>
+						</div>
+						<div class="col-sm-9">
+							<span>` + message + `</span>
+						</div>
+					</div>
+					`);
+				// scroll to bottom
+				$("#messages").scrollTop($("#messages")[0].scrollHeight);
+			});
+
 			$(document).ready(function() {
 				$("#welcome-screen").fadeIn(1000);
 			});
@@ -64,9 +111,48 @@
 						client.write(utf8.encode($("#username").val()));
 						$("#loading-screen").hide();
 						$("#chat-screen").show();
+						$("#messages").html("");
+						$("#chatServerName").text($("#serverSelect").val());
+						let now = new Date();
+						$("#messages").append(`
+							<div class="row" class="message">
+								<div class="col-sm-1">
+									<span style="color: #BDBDBD;">` + now.getHours() + `:` + now.getMinutes() + `</span>
+								</div>
+								<div class="col-sm-2" style="border-right-color: #BDBDBD; border-right-style: solid; border-right-width: 1px;">
+									<span class="float-right text-success">Pulse</span>
+								</div>
+								<div class="col-sm-9">
+									<span class="text-sucess">Connected to ` + $("#serverSelect").val() + ` as ` + $("#username").val() + `!</span>
+								</div>
+							</div>
+							`);
 					}, 1000);
 				});
 			});
+
+			$("#send-button").click(function() {
+				sendMessage($("#messageInput").val());
+				$("#messageInput").val("");
+			});
+
+			$("#messageInput").keypress(function(e) {
+				var keycode = (e.keyCode ? e.keyCode : e.which);
+				if (keycode == "13") {
+					sendMessage($("#messageInput").val());
+					$("#messageInput").val("");
+				}
+			});
+
+			function sendMessage(message) {
+				if (message) {
+					if (message.trim() != "") {
+						client.write(utf8.encode(message));
+					} else {
+						console.log("Ignoring blank message. Not Sending.");
+					}
+				}
+			}
 		</script>
 	</body>
 </html>
