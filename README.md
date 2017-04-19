@@ -1,4 +1,4 @@
-# Pulse 2
+# Pulse Mobile *(non-working)*
 
 [Looking for Version 1 (built on Electron)?](https://github.com/jake-walker/pulse/tree/v1)
 

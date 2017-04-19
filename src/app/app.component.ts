@@ -21,16 +21,18 @@ export class MyApp {
     });
 
     storage.ready().then(() => {
-      if (!storage.keys()["__zone_symbol__value"].includes("servers")) {
-        storage.set("servers", [
-          {
-            name: "ECHO Official",
-            ip: "194.135.84.73",
-            port: 6666,
-            username: "Pulse" + (Math.floor(Math.random() * (Math.floor(99999) - Math.ceil(11111))) + Math.ceil(11111))
-          }
-        ]);
-      }
+      storage.get("servers").then((val) => {
+        if (val == null || val === false) {
+          storage.set("servers", [
+            {
+              name: "ECHO Official",
+              ip: "194.135.84.73",
+              port: 6666,
+              username: "Pulse" + (Math.floor(Math.random() * (Math.floor(99999) - Math.ceil(11111))) + Math.ceil(11111))
+            }
+          ]);
+        }
+      });
     });
   }
 }
