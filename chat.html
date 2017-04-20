@@ -97,7 +97,7 @@
 
 					<div id="compose" style="padding: 1em; padding-right: 1.5em; border-top: 1px solid rgba(0,0,0,.1);">
 					  <div class="input-group">
-					    <input type="text" class="form-control" id="message-input" placeholder="Message">
+					    <input type="text" class="form-control" id="message-input" placeholder="Message" disabled>
 							<span class="input-group-btn">
 					      <button class="btn btn-primary clicky" type="button" id="send-button" disabled><i class="fa fa-paper-plane"></i></button>
 					    </span>
@@ -138,6 +138,36 @@
 				newMessage(username, now, message);
 			});
 
+			client.on("end", () => {
+				newMessage("Pulse", new Date(), "You were disconnected by the server.", "#0275d8");
+				$("#send-button").prop("disabled", true);
+				$("#message-input").prop("disabled", true);
+			});
+
+			client.on("close", (had_error) => {
+				newMessage("Pulse", new Date(), "The connection between you and the server has failed. Retrying in 30 seconds...", "#0275d8");
+				$("#send-button").prop("disabled", true);
+				$("#message-input").prop("disabled", true);
+				setTimeout(() => {
+					retryConnect();
+				}, 30000);
+			});
+
+			client.on("error", (err) => {
+				console.error("Client Error: ", err);
+			});
+
+			client.on("connect", () => {
+				client.setKeepAlive(true);
+				newMessage("Pulse", new Date(), "Connected to " + JSON.parse(getParameterByName("server")).ip + ":" + JSON.parse(getParameterByName("server")).port + ". Now logging in...", "#0275d8");
+				setTimeout(() => { // time for server to handle connection
+					client.write(utf8.encode(JSON.parse(getParameterByName("server")).username));
+					newMessage("Pulse", new Date(), "Logged In! Ready to send messages.", "#0275d8");
+					$("#send-button").prop("disabled", false);
+					$("#message-input").prop("disabled", false);
+				}, 2000);
+			})
+
 			// Enable Bootstrap tooltips
 			$(function () {
 			  $('[data-toggle="tooltip"]').tooltip();
@@ -152,23 +182,34 @@
 				$("body").fadeIn(1000);
 
 				// connect to server
-				client.connect(JSON.parse(getParameterByName("server")).port, JSON.parse(getParameterByName("server")).ip, () => {
-					newMessage("Pulse", new Date(), "Connected to " + JSON.parse(getParameterByName("server")).ip + ":" + JSON.parse(getParameterByName("server")).port + ". Now logging in...", "#0275d8");
-					setTimeout(() => { // time for server to handle connection
-						client.write(utf8.encode(JSON.parse(getParameterByName("server")).username));
-						newMessage("Pulse", new Date(), "Logged In! Ready to send messages.", "#0275d8");
-						$("#send-button").prop("disabled", false);
-					}, 2000);
-				});
+				client.connect(JSON.parse(getParameterByName("server")).port, JSON.parse(getParameterByName("server")).ip);
 			})
 
 			// Setup disconnect button
 			$("#disconnect").click(() => {
 				// close connection
-				client.end();
+				client.end(utf8.encode("Disconnected"));
 				// go home
 				navigate("index");
 			});
+
+			$("#message-input").keypress((e) => {
+				let keycode = (e.keyCode ? e.keyCode : e.which);
+				if (keycode == "13") {
+					sendMessage($("#message-input").val());
+					$("#message-input").val("");
+				}
+			});
+
+			$("#send-button").click(() => {
+				sendMessage($("#message-input").val());
+				$("#message-input").val("");
+			});
+
+			function retryConnect() {
+				newMessage("Pulse", new Date(), "Retrying...", "#0275d8");
+				client.connect(JSON.parse(getParameterByName("server")).port, JSON.parse(getParameterByName("server")).ip);
+			}
 
 			function updateUi() {
 				let channels = [];
@@ -201,6 +242,14 @@
 
 				// scoll to bottom of list
 				if (autoscroll) { $("#message-list").scrollTop($("#message-list")[0].scrollHeight); }
+			}
+
+			function sendMessage(content) {
+				if (content) {
+					if (content.trim() != "") {
+						client.write(utf8.encode(content));
+					}
+				}
 			}
 
 			function switchChannel(to) {

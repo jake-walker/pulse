@@ -4,3 +4,5 @@ node_modules
 Pulse-win32-x64/
 
 NSIS/
+
+pulse_servers\.json
