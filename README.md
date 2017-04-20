@@ -1,4 +1,4 @@
-# Pulse 1
+# Pulse
 A custom unofficial client for Echo.
 
 ## What is Echo?
