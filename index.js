@@ -19,18 +19,19 @@ function createMainWindow() {
 	const win = new electron.BrowserWindow({
 		width: 900,
 		height: 600,
-		minWidth: 800
+		minWidth: 800,
+		minHeight: 400
 	});
 
-	win.loadURL(`file://${__dirname}/index.html`);
+	win.loadURL(`file://${__dirname}/index.html?storageloc=` + encodeURIComponent(app.getAppPath()));
 	win.on('closed', onClosed);
 
 	return win;
 }
 
-app.on('browser-window-created',function(e,window) {
+/*app.on('browser-window-created',function(e,window) {
   window.setMenu(null);
-});
+});*/
 
 app.on('window-all-closed', () => {
 	if (process.platform !== 'darwin') {

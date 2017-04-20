@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+		<title>Pulse</title>
+		<link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+
+		<style>
+			.align-vertical-center {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+				width: 100vw;
+			}
+		</style>
+	</head>
+	<body style="display:none;">
+		<div class="align-vertical-center">
+			<center>
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" class="form-control" id="name" placeholder="My Server">
+          <div class="form-control-feedback"></div>
+        </div>
+        <div class="form-group">
+          <label for="ip">IP Address</label>
+          <input type="text" class="form-control" id="ip" placeholder="194.135.84.73">
+          <div class="form-control-feedback"></div>
+        </div>
+        <div class="form-group">
+          <label for="port">Port</label>
+          <input type="number" class="form-control" id="port" placeholder="6666">
+          <div class="form-control-feedback"></div>
+        </div>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" class="form-control" id="username" placeholder="Jeff">
+          <div class="form-control-feedback"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="save">Save</button>
+        <button type="button" class="btn btn-secondary" onClick="navigate('index')">Cancel</button>
+			</center>
+		</div>
+
+		<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+		<script src="js/jquery-3.2.1.min.js"></script>
+		<script src="js/tether.min.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+		<script>if (window.module) module = window.module;</script>
+		<script>
+			/*var net = require("net");
+			var utf8 = require("utf8");*/
+			var Datastore = require('nedb');
+			var path = require("path");
+
+			// Setup Database
+			var db = new Datastore({filename: path.join(getParameterByName("storageloc"), "pulse_servers.json"), autoload: true});
+
+      $(document).ready(() => {
+        if (getParameterByName("action") == "existing") {
+          db.findOne({ _id: getParameterByName("id") }, function (err, doc) {
+            if (!doc) {
+              alert("That server does not exist! Sending you back...")
+              navigate("index")
+            } else {
+              $("#name").val(doc.name);
+              $("#ip").val(doc.ip);
+              $("#port").val(doc.port);
+              $("#username").val(doc.username);
+            }
+          });
+        }
+        $("body").fadeIn(1000);
+      });
+
+      $("#save").click(() => {
+        let errors = false;
+
+        // name validation
+        if (!$("#name").val() || $("#name").val().trim() == "") {
+          // blank
+          $("#name").parent().removeClass("has-success").addClass("has-danger");
+          $("#name").removeClass("form-control-success").addClass("form-control-danger");
+          $("#name").parent().find(".form-control-feedback").text("The server name must be filled.");
+          errors = true;
+        } else {
+          // ok
+          $("#name").parent().removeClass("has-danger").addClass("has-success");
+          $("#name").removeClass("form-control-danger").addClass("form-control-success");
+          $("#name").parent().find(".form-control-feedback").text("");
+        }
+
+        // ip validation
+        if (!$("#ip").val() || $("#ip").val().trim() == "") {
+          // blank
+          $("#ip").parent().removeClass("has-success").addClass("has-danger");
+          $("#ip").removeClass("form-control-success").addClass("form-control-danger");
+          $("#ip").parent().find(".form-control-feedback").text("The IP Address must be filled.");
+          errors = true;
+        } else {
+          // ok
+          $("#ip").parent().removeClass("has-danger").addClass("has-success");
+          $("#ip").removeClass("form-control-danger").addClass("form-control-success");
+          $("#ip").parent().find(".form-control-feedback").text("");
+        }
+
+        // port validation
+        if (!$("#port").val() || $("#port").val().trim() == "") {
+          // blank
+          $("#port").parent().removeClass("has-success").addClass("has-danger");
+          $("#port").removeClass("form-control-success").addClass("form-control-danger");
+          $("#port").parent().find(".form-control-feedback").text("The port must be filled.");
+          errors = true;
+        } else if ($("#port").val() < 1) {
+          $("#port").parent().removeClass("has-success").addClass("has-danger");
+          $("#port").removeClass("form-control-success").addClass("form-control-danger");
+          $("#port").parent().find(".form-control-feedback").text("The port must be above 1.");
+          errors = true;
+        } else if ($("#port").val() > 65535) {
+          $("#port").parent().removeClass("has-success").addClass("has-danger");
+          $("#port").removeClass("form-control-success").addClass("form-control-danger");
+          $("#port").parent().find(".form-control-feedback").text("The port must be below 65535.");
+          errors = true;
+        } else {
+          // ok
+          $("#port").parent().removeClass("has-danger").addClass("has-success");
+          $("#port").removeClass("form-control-danger").addClass("form-control-success");
+          $("#port").parent().find(".form-control-feedback").text("");
+        }
+
+        // username validation
+        if (!$("#username").val() || $("#username").val().trim() == "") {
+          // blank
+          $("#username").parent().removeClass("has-success").addClass("has-danger");
+          $("#username").removeClass("form-control-success").addClass("form-control-danger");
+          $("#username").parent().find(".form-control-feedback").text("The username must be filled.");
+          errors = true;
+        } else {
+          // ok
+          $("#username").parent().removeClass("has-danger").addClass("has-success");
+          $("#username").removeClass("form-control-danger").addClass("form-control-success");
+          $("#username").parent().find(".form-control-feedback").text("");
+        }
+
+        if (!errors) {
+          if (getParameterByName("action") == "existing") {
+            let newDoc = {
+              name: $("#name").val().trim(),
+              ip: $("#ip").val().trim(),
+              port: parseInt($("#port").val().trim()),
+              username: $("#username").val().trim()
+            }
+            db.update({ _id: getParameterByName("id") }, newDoc, {}, function(err, numReplaced) {
+              if (err) console.error(err);
+              navigate("index");
+            });
+          } else if (getParameterByName("action") == "new") {
+            let newDoc = {
+              name: $("#name").val().trim(),
+              ip: $("#ip").val().trim(),
+              port: parseInt($("#port").val().trim()),
+              username: $("#username").val().trim()
+            }
+            db.insert(newDoc, function(err, newDoc) {
+              if (err) console.error(err);
+              navigate("index");
+            });
+          }
+        }
+      });
+
+			function getParameterByName(name, url) {
+			  if (!url) url = window.location.href;
+				name = name.replace(/[\[\]]/g, "\\$&");
+			  var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+			  var results = regex.exec(url);
+			  if (!results) return null;
+			  if (!results[2]) return '';
+			  return decodeURIComponent(results[2].replace(/\+/g, " "));
+			}
+
+			function navigate(page, data) {
+				if (!data) data = {};
+				let query = "?storageloc=" + encodeURIComponent(getParameterByName("storageloc"));
+				Object.keys(data).forEach((key) => {
+					let value = (typeof data[key] == "object") ? JSON.stringify(data[key]) : data[key];
+					query += "&" + key + "=" + encodeURIComponent(value);
+				});
+				if (!page.endsWith(".html")) { page += ".html"; }
+				console.log("Navigating to: " + page+query);
+        $("body").fadeOut(1000);
+				window.location.assign(page + query);
+			}
+		</script>
+	</body>
+</html>

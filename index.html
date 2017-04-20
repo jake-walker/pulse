@@ -5,153 +5,145 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
 		<title>Pulse</title>
-		<link rel="stylesheet" href="bootstrap.min.css">
+		<link rel="stylesheet" href="css/bootstrap.min.css">
+		<link rel="stylesheet" href="css/font-awesome.min.css">
+
+		<style>
+			.align-vertical-center {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+				width: 100vw;
+			}
+		</style>
 	</head>
-	<body>
-		<div style="display: none;" id="chat-screen">
-			<div class="container" style="padding-top: 2em; padding-bottom: 2em; font-family: monospace; display: flex; flex-direction: column; max-height:100vh; min-height:100vh;">
-				<div id="chat-header">
-					<div class="row">
-						<div class="col-sm-3">
-							<b id="chatServerName">Server Name</b>
-						</div>
-						<div class="col-sm-9"></div>
-					</div>
-					<hr>
+	<body style="display:none;">
+		<div class="align-vertical-center">
+			<center>
+				<h1>Pulse</h1>
+				<p>Select a server to connect to:</p>
+				<div class="form-group">
+				  <select class="form-control" id="serverSelect"></select>
+			  </div>
+				<div class="btn-group" role="group">
+					<button type="button" class="btn btn-success" id="addButton" data-toggle="tooltip" data-placement="bottom" title="New Server"><i class="fa fa-plus"></i></button>
+					<button type="button" class="btn btn-secondary" id="editButton" data-toggle="tooltip" data-placement="bottom" title="Edit Selected Server"><i class="fa fa-pencil"></i></button>
+					<button type="button" class="btn btn-danger" id="deleteButton" data-toggle="tooltip" data-placement="bottom" title="Delete Selected Server"><i class="fa fa-trash"></i></button>
 				</div>
-				<div id="messages" style="overflow-y: scroll; flex: 1; overflow-x: hidden;">
-				</div>
-				<br>
-				<div class="chat-input">
-					<div class="row">
-						<div class="col-md-10">
-							<label class="sr-only" for="messageInput">Message</label>
-						  <input type="text" class="form-control form-control-sm mb-2 mr-sm-2 mb-sm-0" id="messageInput" style="width: 100%;">
-						</div>
-						<div class="col-md-2">
-							<button type="button" class="btn btn-primary btn-sm" style="width: 100%;" id="send-button">Send</button>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div style="display: none;" id="loading-screen">
-			<div style="display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;">
-				<center>
-					<h1 id="loading-screen-text">Loading...</h1>
-				</center>
-			</div>
-		</div>
-
-		<div style="display: none;" id="welcome-screen">
-			<div style="display:flex;justify-content:center;align-items:center;height:100vh;width:100vw;">
-				<center>
-					<h1>Pulse</h1>
-					<div class="form-group">
-				    <label for="serverSelect" class="inline-block">Server</label>
-				    <select class="form-control" id="serverSelect">
-				      <option selected="true" value="194.135.84.73:6666">Official Echo</option>
-				    </select>
-				  </div>
-					<div class="form-group">
-				    <label for="username">Username</label>
-				    <input type="text" class="form-control" id="username">
-				  </div>
-					<button type="button" class="btn btn-primary" id="connectButton">Connect</button>
-				</center>
-			</div>
+				<br><br>
+				<button type="button" class="btn btn-primary" id="connectButton">Connect</button>
+			</center>
 		</div>
 
 		<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
-		<script src="jquery-3.2.1.min.js"></script>
-		<script src="tether.min.js"></script>
-		<script src="bootstrap.min.js"></script>
+		<script src="js/jquery-3.2.1.min.js"></script>
+		<script src="js/tether.min.js"></script>
+		<script src="js/bootstrap.min.js"></script>
 		<script>if (window.module) module = window.module;</script>
 		<script>
-			var net = require("net");
-			var utf8 = require("utf8");
+			/*var net = require("net");
+			var utf8 = require("utf8");*/
+			var Datastore = require('nedb');
+			var path = require("path");
 
-			var client = new net.Socket();
-
-			client.on("data", function(data) {
-			  data = data.toString("utf-8");
-		    let username = data.substring(data.indexOf("[")+1,data.indexOf("]"));
-		    if (!username) { username = "?" }
-		    let message = data.replace("[" + username + "]", "").split();
-				let now = new Date();
-		    $("#messages").append(`
-					<div class="row" class="message">
-						<div class="col-sm-1">
-							<span style="color: #BDBDBD;">` + now.getHours() + `:` + now.getMinutes() + `</span>
-						</div>
-						<div class="col-sm-2" style="border-right-color: #BDBDBD; border-right-style: solid; border-right-width: 1px;">
-							<span class="float-right text-primary">` + username + `</span>
-						</div>
-						<div class="col-sm-9">
-							<span>` + message + `</span>
-						</div>
-					</div>
-					`);
-				// scroll to bottom
-				$("#messages").scrollTop($("#messages")[0].scrollHeight);
+			$(function () {
+			  $('[data-toggle="tooltip"]').tooltip();
 			});
 
-			$(document).ready(function() {
-				$("#welcome-screen").fadeIn(1000);
+			$(document).ready(() => {
+				$("body").fadeIn(1000);
 			});
 
-			$("#connectButton").click(function() {
-				$("#welcome-screen").hide();
-				$("#loading-screen-text").text("Connecting...");
-				$("#loading-screen").show();
-				client.connect(parseInt($("#serverSelect").val().split(":")[1]), $("#serverSelect").val().split(":")[0], function() {
-					$("#loading-screen-text").text("Logging in...");
-					setTimeout(function() { // wait for server to handle connection
-						client.write(utf8.encode($("#username").val()));
-						$("#loading-screen").hide();
-						$("#chat-screen").show();
-						$("#messages").html("");
-						$("#chatServerName").text($("#serverSelect").val());
-						let now = new Date();
-						$("#messages").append(`
-							<div class="row" class="message">
-								<div class="col-sm-1">
-									<span style="color: #BDBDBD;">` + now.getHours() + `:` + now.getMinutes() + `</span>
-								</div>
-								<div class="col-sm-2" style="border-right-color: #BDBDBD; border-right-style: solid; border-right-width: 1px;">
-									<span class="float-right text-success">Pulse</span>
-								</div>
-								<div class="col-sm-9">
-									<span class="text-sucess">Connected to ` + $("#serverSelect").val() + ` as ` + $("#username").val() + `!</span>
-								</div>
-							</div>
-							`);
-					}, 1000);
+			// Setup Database
+			var db = new Datastore({filename: path.join(getParameterByName("storageloc"), "pulse_servers.json"), autoload: true});
+
+			db.find({ ip: "194.135.84.73", port: 6666 }, function(err, docs) {
+				if (err) console.error(err);
+				if (docs.length <= 0) {
+					// first time or no servers
+					var server = {
+						name: "ECHO Official",
+						ip: "194.135.84.73",
+						port: 6666,
+						username: "Pulse" + (Math.floor(Math.random() * (Math.floor(99999) - Math.ceil(11111))) + Math.ceil(11111))
+					}
+					console.log("Adding Official Server because database is empty", server);
+					db.insert(server, function(err, newDoc) {
+						if (err) console.error(err);
+					});
+				}
+			});
+
+			// Fill Server List
+			function updateList() {
+				// clear list
+				$("#serverSelect").html("");
+				db.find({}, function(err, docs) {
+					if (err) console.error(err);
+					docs.forEach((doc) => {
+						$("#serverSelect").append(`<option value="` + doc["_id"] + `">` + doc.name + `</option>`);
+					});
+				});
+			}
+			updateList();
+
+			$("#addButton").click(() => {
+				navigate("edit", {
+					action: "new"
 				});
 			});
 
-			$("#send-button").click(function() {
-				sendMessage($("#messageInput").val());
-				$("#messageInput").val("");
+			$("#editButton").click(() => {
+				navigate("edit", {
+					action: "existing",
+					id: $("#serverSelect").val()
+				});
 			});
 
-			$("#messageInput").keypress(function(e) {
-				var keycode = (e.keyCode ? e.keyCode : e.which);
-				if (keycode == "13") {
-					sendMessage($("#messageInput").val());
-					$("#messageInput").val("");
+			$("#deleteButton").click(() => {
+				if (confirm("Are you sure you want to delete?\nThis is an irreversable action.")) {
+					db.remove({ _id: $("#serverSelect").val() }, {}, function(err, numRemoved) {
+						if (err) console.error(err);
+						updateList();
+					});
 				}
 			});
 
-			function sendMessage(message) {
-				if (message) {
-					if (message.trim() != "") {
-						client.write(utf8.encode(message));
+			$("#connectButton").click(() => {
+				db.findOne({ _id: $("#serverSelect").val() }, function (err, doc) {
+					if (err) console.error(err);
+					if (doc) {
+						navigate("chat", {
+							server: doc
+						});
 					} else {
-						console.log("Ignoring blank message. Not Sending.");
+						alert("Please select a server to connect to!");
 					}
-				}
+				});
+			});
+
+			function getParameterByName(name, url) {
+			  if (!url) url = window.location.href;
+				name = name.replace(/[\[\]]/g, "\\$&");
+			  var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+			  var results = regex.exec(url);
+			  if (!results) return null;
+			  if (!results[2]) return '';
+			  return decodeURIComponent(results[2].replace(/\+/g, " "));
+			}
+
+			function navigate(page, data) {
+				if (!data) data = {};
+				let query = "?storageloc=" + encodeURIComponent(getParameterByName("storageloc"));
+				Object.keys(data).forEach((key) => {
+					let value = (typeof data[key] == "object") ? JSON.stringify(data[key]) : data[key];
+					query += "&" + key + "=" + encodeURIComponent(value);
+				});
+				if (!page.endsWith(".html")) { page += ".html"; }
+				console.log("Navigating to: " + page+query);
+				$("body").fadeOut(1000);
+				window.location.assign(page + query);
 			}
 		</script>
 	</body>
