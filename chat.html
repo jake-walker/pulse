@@ -106,6 +106,40 @@
 
 				</div>
 			</div>
+
+			<div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel" aria-hidden="true">
+			  <div class="modal-dialog" role="document">
+			    <div class="modal-content">
+			      <div class="modal-header">
+			        <h5 class="modal-title" id="errorModalLabel">Whoops!</h5>
+			      </div>
+			      <div class="modal-body">
+			        ...
+			      </div>
+			      <div class="modal-footer">
+			        <button type="button" class="btn btn-danger clicky" onclick="disconnect()">Disconnect</button>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+
+			<div class="modal fade" id="passwordModal" tabindex="-1" role="dialog" aria-labelledby="passwordModalLabel" aria-hidden="true">
+			  <div class="modal-dialog" role="document">
+			    <div class="modal-content">
+			      <div class="modal-header">
+			        <h5 class="modal-title" id="passwordModalLabel">This server requires a password!</h5>
+			      </div>
+			      <div class="modal-body">
+			        <input type="password" class="form-control form-control-lg" id="server-password" placeholder="Password">
+			      </div>
+			      <div class="modal-footer">
+							<button type="button" id="verifyPasswordButton" class="btn btn-success clicky" onclick="verifyPassword()">Login</button>
+			        <button type="button" class="btn btn-danger clicky" onclick="disconnect()">Disconnect</button>
+			      </div>
+			    </div>
+			  </div>
+			</div>
+
 		</div>
 
 		<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
@@ -122,20 +156,148 @@
 
 			var currentChannel;
 			var autoscroll = true;
+			var connected = false;
+			var channels = [];
+			var username = "";
 
 			// Setup Database
       //var db = new Datastore({filename: path.join(getParameterByName("storageloc"), "pulse_settings.db"), autoload: true});
 
+			$("#errorModal").modal({
+				keyboard: false,
+				backdrop: 'static',
+				focus: true,
+				show: false
+			});
+
+			$("#passwordModal").modal({
+				keyboard: false,
+				backdrop: 'static',
+				focus: true,
+				show: false
+			});
+
 			// make new client
 			var client = new net.Socket();
 
+			function parseJson(data) {
+			  data = data.replace('\n', '', 'g');
+
+			  var
+			    start = data.indexOf('{'),
+			    open = 0,
+			    i = start,
+			    len = data.length,
+			    result = [];
+
+			  for (; i < len; i++) {
+			    if (data[i] == '{') {
+			      open++;
+			    } else if (data[i] == '}') {
+			      open--;
+			      if (open === 0) {
+			        result.push(JSON.parse(data.substring(start, i + 1)));
+			        start = i + 1;
+			      }
+			    }
+			  }
+
+			  return result;
+			}
+
+			function parseMessage(message) {
+				console.log("message received", message);
+				//client.write(utf8.encode(JSON.parse(getParameterByName("server")).username));
+				//newMessage("Pulse", new Date(), "Logged In! Ready to send messages.", "#0275d8");
+				//$("#send-button").prop("disabled", false);
+				//$("#message-input").prop("disabled", false);
+
+				if (message.msgtype == "BANCONF") {
+					if (message.data[0] == "notbanned") {
+						client.write(utf8.encode(JSON.stringify({
+							data: "V1.4.2",
+							msgtype: "VERCHECK",
+							channel: ""
+						})));
+					} else {
+						$("#errorModal").modal("show");
+						$("#errorModal").find(".modal-body").html("<b>Failed to connect!</b> This IP address is banned.");
+					}
+				}
+
+				if (message.msgtype == "PASSREQ") {
+					$("#passwordModal").modal("show");
+				}
+
+				if (message.msgtype == "PASSCONF") {
+					if (message.data == "rightpass") {
+						$("#passwordModal").modal("hide");
+						$("#passwordModal").find(".modal-body").find("#server-password").prop("disabled", false);
+						$("#passwordModal").find(".modal-footer").find("#verifyPasswordButton").prop("disabled", false);
+					} else if (message.data == "wrongpass") {
+						$("#passwordModal").find(".modal-body").find("#server-password").prop("disabled", false);
+						$("#passwordModal").find(".modal-footer").find("#verifyPasswordButton").prop("disabled", false);
+					}
+				}
+
+				if (message.msgtype == "MOTD") {
+					newMessage("SERVER", new Date(), message.data);
+					client.write(utf8.encode(JSON.stringify({
+						data: JSON.parse(getParameterByName("server")).username,
+						msgtype: "AUTH",
+						channel: ""
+					})));
+				}
+
+				if (message.msgtype == "CHANNELS") {
+					channels = [];
+					channels = message.data;
+					updateUi(true);
+
+					connected = true;
+					$("#send-button").prop("disabled", false);
+					$("#message-input").prop("disabled", false);
+				}
+
+				if (message.msgtype == "USERTAKEN") {
+					username = message.data;
+					newMessage("Pulse", new Date(), "Your username was set to " + username + " by the server.", "#0275d8");
+				}
+
+				if (message.msgtype == "MSG-CB") {
+					let username = message.data.substring(message.data.indexOf("[")+1,message.data.indexOf("]"));
+					if (!username) { username = "?" }
+					let content = message.data.replace("[" + username + "] ", "").split()[0];
+					let now = new Date();
+					newMessage(username, now, content);
+				}
+
+				//let username = data.substring(data.indexOf("[")+1,data.indexOf("]"));
+		    //if (!username) { username = "?" }
+		    //let message = data.replace("[" + username + "]", "").split();
+				//let now = new Date();
+				//newMessage(username, now, message);
+			}
+
+			function verifyPassword() {
+				var password = $("#passwordModal").find(".modal-body").find("#server-password").val();
+				$("#passwordModal").find(".modal-body").find("#server-password").prop("disabled", true);
+				$("#passwordModal").find(".modal-footer").find("#verifyPasswordButton").prop("disabled", true);
+
+				client.write(utf8.encode(JSON.stringify({
+					data: password,
+					msgtype: "PASS",
+					channel: ""
+				})));
+			}
+
 			client.on("data", (data) => {
 				data = data.toString("utf-8");
-				let username = data.substring(data.indexOf("[")+1,data.indexOf("]"));
-		    if (!username) { username = "?" }
-		    let message = data.replace("[" + username + "]", "").split();
-				let now = new Date();
-				newMessage(username, now, message);
+				data = parseJson(data);
+
+				data.forEach(function(message) {
+					parseMessage(message);
+				});
 			});
 
 			client.on("end", () => {
@@ -145,12 +307,12 @@
 			});
 
 			client.on("close", (had_error) => {
-				newMessage("Pulse", new Date(), "The connection between you and the server has failed. Retrying in 30 seconds...", "#0275d8");
+				newMessage("Pulse", new Date(), "The connection between you and the server has failed. Retrying in 5 seconds...", "#0275d8");
 				$("#send-button").prop("disabled", true);
 				$("#message-input").prop("disabled", true);
 				setTimeout(() => {
 					retryConnect();
-				}, 30000);
+				}, 5000);
 			});
 
 			client.on("error", (err) => {
@@ -160,12 +322,7 @@
 			client.on("connect", () => {
 				client.setKeepAlive(true);
 				newMessage("Pulse", new Date(), "Connected to " + JSON.parse(getParameterByName("server")).ip + ":" + JSON.parse(getParameterByName("server")).port + ". Now logging in...", "#0275d8");
-				setTimeout(() => { // time for server to handle connection
-					client.write(utf8.encode(JSON.parse(getParameterByName("server")).username));
-					newMessage("Pulse", new Date(), "Logged In! Ready to send messages.", "#0275d8");
-					$("#send-button").prop("disabled", false);
-					$("#message-input").prop("disabled", false);
-				}, 2000);
+				connected = false;
 			})
 
 			// Enable Bootstrap tooltips
@@ -185,12 +342,16 @@
 				client.connect(JSON.parse(getParameterByName("server")).port, JSON.parse(getParameterByName("server")).ip);
 			})
 
-			// Setup disconnect button
-			$("#disconnect").click(() => {
+			function disconnect() {
 				// close connection
 				client.end(utf8.encode("Disconnected"));
 				// go home
 				navigate("index");
+			}
+
+			// Setup disconnect button
+			$("#disconnect").click(() => {
+				disconnect();
 			});
 
 			$("#message-input").keypress((e) => {
@@ -211,20 +372,19 @@
 				client.connect(JSON.parse(getParameterByName("server")).port, JSON.parse(getParameterByName("server")).ip);
 			}
 
-			function updateUi() {
-				let channels = [];
+			function updateUi(override) {
+				if (channels.length == 0) {
+					channels.push("server");
+				}
 
-				//create a fake channel
-				channels.push("main");
-
-				if (!currentChannel) {
+				if (!currentChannel || channels.indexOf(currentChannel) < 0 || override == true) {
 					// if no current channel (when chat starts)
 					// set to first
-					switchChannel(channels[0]);
+					switchChannel(channels[0], override);
 				}
 
 				// clear channel list
-				$("#channel-list").html();
+				$("#channel-list").html("");
 
 				// add each channel to the list
 				channels.forEach((channel) => {
@@ -233,11 +393,14 @@
 			}
 
 			function newMessage(author, time, content, color) {
+				console.log(author, time, content, color);
+				content = content.replace(/\n/g, "<br>");
+
 				// add message to bottom of list
 				$("#message-list").append(`
 					<div class="message">
 						<b class='author' ` + (color ? "style='color: " + color + ";'" : "") + `>` + author + `</b> <small class='date' class="text-muted">` + moment(time).format("h:mm a, Do MMM YY") + `</small><br>
-						<span class='message-content'>` + content + `</span>
+						<div class='message-content'>` + content + `</div>
 					</div>`);
 
 				// scoll to bottom of list
@@ -247,19 +410,30 @@
 			function sendMessage(content) {
 				if (content) {
 					if (content.trim() != "") {
-						client.write(utf8.encode(content));
+						client.write(utf8.encode(JSON.stringify({
+							data: "[" + username + "] " + content,
+							msgtype: "MSG-SB",
+							channel: currentChannel
+						})));
 					}
 				}
 			}
 
-			function switchChannel(to) {
-				if (currentChannel != to) {
+			function switchChannel(to, override) {
+				if (currentChannel != to || override == true) {
 					if (currentChannel) {
 						$("#channel-" + currentChannel).removeClass("active");
 					}
 					$("#channel-" + to).addClass("active");
 					$("#message-input").attr("placeholder", "Message channel #" + to);
-					newMessage("Pulse", new Date(), "Switched to channel #" + to, "#0275d8");
+					if (connected == true || override == true) {
+						client.write(utf8.encode(JSON.stringify({
+							data: to,
+							msgtype: "CHANNELJOIN",
+							channel: ""
+						})));
+						newMessage("Pulse", new Date(), "Switched to channel #" + to, "#0275d8");
+					}
 					currentChannel = to;
 				}
 			}

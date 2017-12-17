@@ -58,13 +58,13 @@
 			// Setup Database
 			var db = new Datastore({filename: path.join(getParameterByName("storageloc"), "pulse_servers.json"), autoload: true});
 
-			db.find({ ip: "194.135.84.73", port: 6666 }, function(err, docs) {
+			db.find({ ip: "localhost", port: 6666 }, function(err, docs) {
 				if (err) console.error(err);
 				if (docs.length <= 0) {
 					// first time or no servers
 					var server = {
-						name: "ECHO Official",
-						ip: "194.135.84.73",
+						name: "Local",
+						ip: "localhost",
 						port: 6666,
 						username: "Pulse" + (Math.floor(Math.random() * (Math.floor(99999) - Math.ceil(11111))) + Math.ceil(11111))
 					}
